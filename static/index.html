@@ -1,0 +1,80 @@
+<html>
+    <p>
+        please wait...
+    </p>
+    <button onclick="buttontoken()">do the thing</button>
+<script>
+    window.post = function(url, data) {
+        return fetch(url, {method: "POST", body: JSON.stringify(data)});
+    }
+    window.get = function(url) {
+        return fetch(url, {method: "GET"});
+    }
+    window.delete = function(url) {
+        return fetch(url, {method: "DELETE"});
+    }
+    window.get_token = function(ucode) {
+        let url = getCookieValue("url")
+        url = "https://dev-318981.oktapreview.com/oauth2/default/v1/token"
+        let rheaders = {'content-type': 'application/x-www-form-urlencoded'}
+        let data = {
+            code: ucode,
+            code_verifier: getCookieValue('verifier'),
+            grant_type: 'authorization_code',
+            redirect_uri: getCookieValue('redir_url'),
+            client_id: getCookieValue("client_id"),
+        }
+        // turn data into a form encoded format
+        var formBody = [];
+        for (var property in data) {
+            var encodedKey = encodeURIComponent(property);
+            var encodedValue = encodeURIComponent(data[property]);
+            formBody.push(encodedKey + "=" + encodedValue);
+        }
+        formBody = formBody.join("&");
+        //
+        fetch(url, {
+            method: "POST", 
+            mode: 'cors',
+            headers: rheaders,
+            body: formBody, 
+        })
+            .then(response => response.json())
+                .then(data => post("/", data))
+                .then(foo => window.close())
+    }
+    
+    window.getCookieValue = function(value) {
+        let sw = value+"="
+        let cookieValue = document.cookie
+            .split('; ')
+            .find(row => row.startsWith(sw))
+            .split('=')[1];
+        if (cookieValue.startsWith("\"") && cookieValue.endsWith("\"")) {
+            cookieValue = cookieValue.substring(1)
+            cookieValue = cookieValue.slice(0,-1)
+        }
+        return cookieValue
+    }
+    window.buttontoken = function() {
+        let dargs = window.location.hash
+        dargs = dargs.replace("#","")
+        let urlParams = new URLSearchParams(dargs)
+        get_token(urlParams.get('code'))
+    }
+    document.addEventListener("DOMContentLoaded", function(){
+        // get the CSRF state
+        let state = getCookieValue("state")
+        // parse the URL
+        let dargs = window.location.hash
+        dargs = dargs.replace("#","")
+        let urlParams = new URLSearchParams(dargs)
+        // check the CSRF
+        if (state !== urlParams.get('state')) {
+            delete("/")
+            window.close()
+        }
+        //get_token(urlParams.get('code'))
+    });
+</script>
+</html>
